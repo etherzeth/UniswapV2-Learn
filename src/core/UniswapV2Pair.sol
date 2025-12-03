@@ -192,6 +192,23 @@ contract UniswapV2Pair is UniswapV2ERC20, IUniswapV2Pair {
         }
 
         _update(balance0, balance1, _reserve0, _reserve1);
-        emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1In, to);
+        emit Swap(msg.sender, amount0In, amount1In, to);
+    }
+
+    function skim(address to) external override {
+        address _token0 = token0;
+        address _token1 = token1;
+
+        _safeTransfer(_token0, to, IERC20(_token0).balanceOf(address(this)) - reserve0);
+        _safeTransfer(_token1, to, IERC20(_token1).balanceOf(address(this)) - reserve1);
+    }
+
+    function sync() external override {
+        _update(
+            IERC20(token0).balanceOf(address(this)),
+            IERC20(token1).balanceOf(address(this)),
+            reserve0,
+            reserve1
+        );
     }
 }

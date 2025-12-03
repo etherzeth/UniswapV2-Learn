@@ -36,6 +36,14 @@ contract UniswapV2Factory is IUniswapV2Factory {
         emit PairCreated(token0, token1, pair, allPairs.length);
     }
 
+    function FeeToSetter() external view override returns (address) {
+        return feeToSetter;
+    }
+
+    function allPairsLength() external view override returns (uint256) {
+        return allPairs.length;
+    }
+
     function setFeeTo(address _feeTo) external {
         require(msg.sender == feeToSetter, "UniswapV2:FORBBIDEN");
         feeTo = _feeTo;

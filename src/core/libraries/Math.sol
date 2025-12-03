@@ -3,7 +3,7 @@ pragma solidity ^0.8.18;
 library Math {
 
     // a library for performing various math operations
-    function mint(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function min(uint256 x, uint256 y) internal pure returns (uint256 z) {
         z = x < y ? x : y;
     }
 
