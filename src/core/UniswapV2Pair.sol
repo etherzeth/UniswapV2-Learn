@@ -9,8 +9,8 @@ import {IUniswapV2Callee} from "./interfaces/IUniswapV2Callee.sol";
 import {Math} from "./libraries/Math.sol";
 
 contract UniswapV2Pair is UniswapV2ERC20, IUniswapV2Pair {
-    uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
-    bytes4 private constant SELECTOR = bytes4(keccak256(bytes("transfer(address,uint256)")));
+    uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3; // 1000
+    bytes4 private constant SELECTOR = bytes4(keccak256(bytes("transfer(address,uint256)"))); // function selector : 0xa9059cbb
 
     address public factory;
     address public token0;
@@ -47,7 +47,7 @@ contract UniswapV2Pair is UniswapV2ERC20, IUniswapV2Pair {
         factory = msg.sender;
     }
 
-    function initialize(address _token0, address _token1) external {
+    function initialize(address _token0, address _token1) external override {
         require(msg.sender == factory, "UniswapV2:FORBIDDEN");
         token0 = _token0;
         token1 = _token1;
@@ -56,12 +56,15 @@ contract UniswapV2Pair is UniswapV2ERC20, IUniswapV2Pair {
     // it's a function that update reserve
     function _update(uint256 balance0, uint256 balance1, uint112 _reserve0, uint112 _reserve1) private {
         require(balance0 <= type(uint112).max && balance1 < type(uint112).max, "UniswapV2:OVERFLOW");
-        uint32 blockTimeStamp = uint32(block.timestamp % 2 ** 32);
+        uint32 blockTimeStamp = uint32(block.timestamp % 2 ** 32); // 2 ** 32 = 4,294,967,296
         uint32 timeElapsed = blockTimeStamp - blockTimeStampLast;
 
         if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
-            price0CumulativeLast = ((reserve0 *  1e18) / reserve0) * timeElapsed;
-            price1CumulativeLast = ((reserve1 * 1e18) / reserve1) * timeElapsed;
+            uint256 price0 = (uint256(_reserve1) * 1e18) / uint256(_reserve0);
+            uint256 price1 = (uint256(_reserve0) * 1e18) / uint256(_reserve1);
+
+            price0CumulativeLast += price0 * timeElapsed;
+            price1CumulativeLast += price1 * timeElapsed;
         }
 
         reserve0 = uint112(balance0);
