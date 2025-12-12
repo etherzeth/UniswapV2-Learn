@@ -5,7 +5,7 @@ import {IERC20} from "../../src/core/interfaces/IERC20.sol";
 import {Context} from "../utils/Context.sol";
 import {IERC20Errors} from "../utils/IERC20Errors.sol"; // Mock
 
-abstract contract MockERC20 is IERC20, Context, IERC20Errors {
+contract TestMockERC20 is IERC20, Context, IERC20Errors {
     mapping(address account => uint256) private _balances;
     mapping(address account => mapping(address spender => uint256)) private _allowances;
 
@@ -13,10 +13,10 @@ abstract contract MockERC20 is IERC20, Context, IERC20Errors {
     string private _name;
     string private _symbol;
 
-    constructor(string memory name_, string memory symbol_) {
+    constructor(string memory name_, string memory symbol_, uint256 _initialSupply) {
         _name = name_;
         _symbol = symbol_;
-        // _mint(msg.sender, _initialSupply);
+        _mint(msg.sender, _initialSupply);
     }
 
     function name() public view virtual returns (string memory) {
@@ -39,7 +39,7 @@ abstract contract MockERC20 is IERC20, Context, IERC20Errors {
         return _balances[account];
     }
 
-    function transfer(address to, uint256 value) public view virutal returns (bool) {
+    function transfer(address to, uint256 value) public virtual returns (bool) {
         address owner = _msgsender();
         _transfer(owner, to, value);
         return true;
@@ -56,7 +56,7 @@ abstract contract MockERC20 is IERC20, Context, IERC20Errors {
     }
 
     function transferFrom(address from, address to, uint256 value) public virtual returns (bool) {
-        address owner = _msgsender();
+        address spender = _msgsender();
         _spendAllowance(from, spender, value);
         _transfer(from, to, value);
         return true;
@@ -68,7 +68,7 @@ abstract contract MockERC20 is IERC20, Context, IERC20Errors {
             revert ERC20InsufficientAllowance(spender, currentAllowance, value);
         }
         unchecked {
-            _approve(owner, spender, currentAllowance - value, false);
+            _approve(owner, spender, currentAllowance - value);
         }
     }
 
@@ -84,5 +84,62 @@ abstract contract MockERC20 is IERC20, Context, IERC20Errors {
             revert ERC20InvalidReceiver(address(0));
         }
         _update(from, to, value);
+    }
+
+    function _update(address from, address to, uint256 value) internal virtual {
+        if (from == address(0)) {
+            // Overflow check required: The rest of the code assumes that totalSupply never overflows
+            _totalSupply += value;
+        } else {
+            uint256 fromBalance = _balances[from];
+            if (fromBalance < value) {
+                revert ERC20InsufficientBalance(from, fromBalance, value);
+            }
+            unchecked {
+                // Overflow not possible: value <= fromBalance <= totalSupply.
+                _balances[from] = fromBalance - value;
+            }
+        }
+
+        if (to == address(0)) {
+            unchecked {
+                // Overflow not possible: value <= totalSupply or value <= fromBalance <= totalSupply.
+                _totalSupply -= value;
+            }
+        } else {
+            unchecked {
+                // Overflow not possible: balance + value is at most totalSupply, which we know fits into a uint256.
+                _balances[to] += value;
+            }
+        }
+
+        emit Transfer(from, to, value);
+    }
+
+    function _approve(address owner, address spender, uint256 value, bool emitEvent) internal virtual {
+        if (owner == address(0)) {
+            revert ERC20InvalidApprover(address(0));
+        }
+        if (spender == address(0)) {
+            revert ERC20InvalidSpender(address(0));
+        }
+        _allowances[owner][spender] -= value;
+        if (emitEvent) {
+            emit Approval(owner, spender, value);
+        }
+    }
+
+    function _mint(address account,uint256 value) internal {
+        if (account == address(0)) {
+            revert ERC20InvalidReceiver(address(0));
+        }
+        _update(address(0), account, value);
+    }
+
+    function _burn(address account, uint256 value) internal {
+        if (account == address(0)) {
+            revert ERC20InvalidSender(address(0));
+        }
+        _update(account, address(0), value);
     }
 }
